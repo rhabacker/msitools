@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='windows-1252'?>
+<Wix xmlns='http://schemas.microsoft.com/wix/2006/wi' RequiredVersion='3.6.3303.0'>
+  <Product Id='*' Name='FeatureRefInProduct' Language='1033' Version='1.0.0' Manufacturer='wixl'
+           UpgradeCode='5b4af8d0-cc57-48ac-946f-1536688fd271'>
+    <Package InstallerVersion='200' Compressed='yes' />
+    <Media Id='1' Cabinet='product.cab' EmbedCab='yes' />
+    <MajorUpgrade Schedule='afterInstallInitialize' AllowSameVersionUpgrades='yes'
+                  DowngradeErrorMessage='A later version is already installed.' />
+    <WixVariable Id='WixUILicenseRtf' Value='License.rtf' />
+    <SetProperty Id='ARPINSTALLLOCATION' Value='[INSTALL_ROOT]' After='CostFinalize' />
+    <Directory Id='TARGETDIR' Name='SourceDir'>
+      <Directory Id='ProgramFilesFolder'>
+        <Directory Id='INSTALL_ROOT' Name='FeatureRefInProduct'>
+          <Component Id='C1' Guid='7744f272-d5f9-4a15-a601-e3d8dabc6a77'>
+            <File Id='F1' Source='FoobarAppl10.exe' KeyPath='yes' />
+          </Component>
+        </Directory>
+      </Directory>
+    </Directory>
+    <FeatureRef Id='ProductFeature' />
+  </Product>
+
+  <Fragment>
+    <Feature Id='ProductFeature' Title='FeatureRefInProduct' Level='1'>
+      <ComponentRef Id='C1' />
+    </Feature>
+  </Fragment>
+</Wix>

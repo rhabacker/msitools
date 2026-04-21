@@ -320,6 +320,16 @@ namespace Wixl {
             return evaluator.eval (str);
         }
 
+        bool is_variable_defined (string expr) {
+            var variable = unquote (expr.strip ());
+
+            if (variable.has_prefix ("$(") && variable.has_suffix (")"))
+                variable = variable[2:-1];
+            variable = remove_prefix ("var.", variable);
+
+            return lookup_variable (variable) != null;
+        }
+
         class Location: Object {
             public File file;
             public int line;
@@ -390,12 +400,12 @@ namespace Wixl {
                     case "ifdef":
                         ifstack.push_head (context);
                         var value = reader.const_value ().strip ();
-                        context = new IfContext (context.enabled && context.is_true, eval_variable (value, file) != null, IfContext.State.IF);
+                        context = new IfContext (context.enabled && context.is_true, is_variable_defined (value), IfContext.State.IF);
                         break;
                     case "ifndef":
                         ifstack.push_head (context);
                         var value = reader.const_value ().strip ();
-                        context = new IfContext (context.enabled && context.is_true, eval_variable (value, file) == null, IfContext.State.IF);
+                        context = new IfContext (context.enabled && context.is_true, !is_variable_defined (value), IfContext.State.IF);
                         break;
                     case "else":
                         if (ifstack.is_empty ())
@@ -442,11 +452,11 @@ namespace Wixl {
                         undefine_variable (value);
                         break;
                     case "require":
-                        var value = eval (reader.const_value (), file).strip ();
+                        var value = unquote (eval (reader.const_value (), file).strip ());
                         include (value, loc, writer, true);
                         break;
                     case "include":
-                        var value = eval (reader.const_value (), file).strip ();
+                        var value = unquote (eval (reader.const_value (), file).strip ());
                         include (value, loc, writer);
                         break;
                     case "warning":
@@ -508,8 +518,18 @@ namespace Wixl {
                 return false;
             }
 
-            var reader = new Xml.TextReader.for_doc (data, "");
-            preprocess_xml (reader, writer, file, true);
+            try {
+                var reader = new Xml.TextReader.for_doc (data, filename);
+                preprocess_xml (reader, writer, file, true);
+            } catch (GLib.Error error) {
+                // Some generators (for example CPack) produce .wxi files that
+                // only contain processing instructions such as <?define ...?>.
+                // Those are not standalone XML documents, so parse them by
+                // wrapping in an Include root element.
+                var wrapped = "<Include>\n" + data + "\n</Include>";
+                var reader = new Xml.TextReader.for_doc (wrapped, filename);
+                preprocess_xml (reader, writer, file, true);
+            }
             return true;
         }
 
@@ -544,7 +564,7 @@ namespace Wixl {
         public Xml.Doc preprocess (string data, File? file) throws GLib.Error {
             Xml.Doc doc;
             Xml.TextWriter writer = new Xml.TextWriter.doc (out doc);
-            var reader = new Xml.TextReader.for_doc (data, "");
+            var reader = new Xml.TextReader.for_doc (data, file != null ? file.get_path () : "");
 
             writer.start_document ();
             preprocess_xml (reader, writer, file);

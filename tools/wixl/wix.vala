@@ -128,6 +128,8 @@ namespace Wixl {
         public class string name;
 
         public string Id { get; set; }
+        public string SourceFile { get; set; }
+        public int SourceLine { get; set; }
         public List<WixNode> children;
 
         // FIXME: would be nice if vala always initialize class member to null
@@ -208,10 +210,12 @@ namespace Wixl {
             }
         }
 
-        public virtual void load (Xml.Node *node) throws Wixl.Error {
+        public virtual void load (Xml.Node *node, string source = "<unknown>") throws Wixl.Error {
             if (name != null && node->name != name)
                 throw new Error.FAILED ("%s: invalid node %s".printf (name, node->name));
 
+            SourceFile = source;
+            SourceLine = (int)node->line;
             load_properties_from_node (node);
             for (var child = node->children; child != null; child = child->next) {
                 switch (child->type) {
@@ -224,7 +228,7 @@ namespace Wixl {
                     var t = child_types->lookup (child->name);
                     if (t != 0) {
                         var elem = Object.new (t) as WixElement;
-                        elem.load (child);
+                        elem.load (child, source);
                         add_child (elem);
                         continue;
                     }
@@ -232,7 +236,7 @@ namespace Wixl {
                 default:
                     break;
                 }
-                error ("unhandled child %s node %s", name, child->name);
+                error ("%s:%d: unhandled child %s node %s", source, (int)child->line, name, child->name);
             }
         }
 
@@ -295,7 +299,10 @@ namespace Wixl {
                 typeof (WixDirectory),
                 typeof (WixDirectoryRef),
                 typeof (WixComponentGroup),
+                typeof (WixFeature),
+                typeof (WixFeatureRef),
                 typeof (WixBinary),
+                typeof (WixSetProperty),
                 typeof (WixUI),
                 typeof (WixUIRef),
                 typeof (WixInstallUISequence),
@@ -340,6 +347,17 @@ namespace Wixl {
             base.accept (visitor);
             visitor.visit_property (this);
         }
+    }
+
+    public class WixSetProperty: WixElement {
+        static construct {
+            name = "SetProperty";
+        }
+
+        public string Value { get; set; }
+        public string Before { get; set; }
+        public string After { get; set; }
+        public string Sequence { get; set; }
     }
 
     public class WixPackage: WixElement {
@@ -545,6 +563,22 @@ namespace Wixl {
             visitor.visit_feature (this, VisitState.ENTER);
             base.accept (visitor);
             visitor.visit_feature (this, VisitState.LEAVE);
+        }
+    }
+
+    public class WixFeatureRef: WixElementRef<WixFeature> {
+        static construct {
+            name = "FeatureRef";
+            ref_type = typeof (WixFeature);
+
+            add_child_types (child_types, {
+                typeof (WixComponentRef),
+                typeof (WixComponentGroupRef),
+            });
+        }
+
+        public override string full_path (WixResolver r) throws GLib.Error {
+            return ((WixElement)r.resolve<WixFeature> (this)).full_path (r);
         }
     }
 
@@ -758,8 +792,8 @@ namespace Wixl {
         // not in the specification, but used by layouts?
         public string Condition { get; set; }
 
-        public override void load (Xml.Node *node) throws Wixl.Error {
-            base.load (node);
+        public override void load (Xml.Node *node, string source = "<unknown>") throws Wixl.Error {
+            base.load (node, source);
             name = node->name;
         }
 
@@ -1034,6 +1068,8 @@ namespace Wixl {
             name = "MajorUpgrade";
         }
 
+        public string Schedule { get; set; }
+
         public string DowngradeErrorMessage { get; set; }
 
         public string AllowSameVersionUpgrades { get; set; }
@@ -1067,6 +1103,7 @@ namespace Wixl {
                 typeof (WixDirectory),
                 typeof (WixDirectoryRef),
                 typeof (WixFeature),
+                typeof (WixFeatureRef),
                 typeof (WixIcon),
                 typeof (WixInstallExecuteSequence),
                 typeof (WixInstallUISequence),
@@ -1076,11 +1113,13 @@ namespace Wixl {
                 typeof (WixMedia),
                 typeof (WixPackage),
                 typeof (WixProperty),
+                typeof (WixSetProperty),
                 typeof (WixUpgrade),
                 typeof (WixCustomAction),
                 typeof (WixBinary),
                 typeof (WixMajorUpgrade),
                 typeof (WixMediaTemplate),
+                typeof (WixVariable),
                 typeof (WixUIRef),
             });
         }
@@ -1268,6 +1307,14 @@ namespace Wixl {
         public override void accept (WixNodeVisitor visitor) throws GLib.Error {
             visitor.visit_ui_ref (this);
         }
+    }
+
+    public class WixVariable: WixElement {
+        static construct {
+            name = "WixVariable";
+        }
+
+        public string Value { get; set; }
     }
 
     public class WixUIText: WixElement {
@@ -1516,6 +1563,8 @@ namespace Wixl {
                 typeof (WixFragment),
             });
         }
+
+        public string RequiredVersion { get; set; }
     }
 
     public class WixEnvironment: WixElement {
