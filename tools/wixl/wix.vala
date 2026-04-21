@@ -128,6 +128,8 @@ namespace Wixl {
         public class string name;
 
         public string Id { get; set; }
+        public string SourceFile { get; set; }
+        public int SourceLine { get; set; }
         public List<WixNode> children;
 
         // FIXME: would be nice if vala always initialize class member to null
@@ -212,6 +214,8 @@ namespace Wixl {
             if (name != null && node->name != name)
                 throw new Error.FAILED ("%s: invalid node %s".printf (name, node->name));
 
+            SourceFile = source;
+            SourceLine = (int)node->line;
             load_properties_from_node (node);
             for (var child = node->children; child != null; child = child->next) {
                 switch (child->type) {

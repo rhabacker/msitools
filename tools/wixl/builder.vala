@@ -1490,7 +1490,16 @@ namespace Wixl {
 
         public override void visit_ui_ref (WixUIRef ref) throws GLib.Error {
             if (find_element<WixUI>(@ref.Id) == null) {
-                load_extension_file(Extension.UI, @ref.Id);
+                try {
+                    load_extension_file (Extension.UI, @ref.Id);
+                } catch (GLib.Error error) {
+                    if (@ref.Id == "WixUI_InstallDir") {
+                        // We only ship the minimal built-in UI set.
+                        load_extension_file (Extension.UI, "WixUI_Minimal");
+                    } else {
+                        throw new Wixl.Error.FAILED ("%s:%d: %s", @ref.SourceFile, @ref.SourceLine, error.message);
+                    }
+                }
             }
         }
 

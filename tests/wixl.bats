@@ -275,6 +275,37 @@ EOF
   test -f out.msi
 }
 
+@test "wixl - WixUI_InstallDir fallback to built-in UI" {
+  cd wixl
+  cat >ui-install-dir.wxs <<EOF
+<?xml version="1.0"?>
+<Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
+  <Product Id='*' Name='UIInstallDir' Language='1033' Version='1.0.0' Manufacturer='Test'
+           UpgradeCode='12345678-1234-1234-1234-123456789013'>
+    <Package InstallerVersion='200' Compressed='yes'/>
+    <Media Id='1' Cabinet='test.cab' EmbedCab='yes'/>
+    <Property Id='WIXUI_INSTALLDIR' Value='INSTALLDIR'/>
+    <Directory Id='TARGETDIR' Name='SourceDir'>
+      <Directory Id='ProgramFilesFolder'>
+        <Directory Id='INSTALLDIR' Name='UIInstallDir'>
+          <Component Id='MainComponent' Guid='12345678-1234-1234-1234-123456789014'>
+            <File Id='MainFile' Source='FoobarAppl10.exe' KeyPath='yes'/>
+          </Component>
+        </Directory>
+      </Directory>
+    </Directory>
+    <Feature Id='MainFeature' Level='1'>
+      <ComponentRef Id='MainComponent'/>
+    </Feature>
+    <UIRef Id='WixUI_InstallDir'/>
+  </Product>
+</Wix>
+EOF
+  run "$wixl" -o out.msi ui-install-dir.wxs --extdir "$SRCDIR/data/ext"
+  [ "$status" -eq 0 ]
+  test -f out.msi
+}
+
 @test "wixl - XML handling reports source location" {
   cd wixl
   cat >bad-location.wxs <<EOF
