@@ -61,6 +61,20 @@ INSERT INTO \`Component\` (\`Component\`, \`ComponentId\`, \`Directory_\`, \`Att
   test -f out.msi
 }
 
+@test "wixl - FeatureRef in Fragment" {
+  cd wixl
+  run "$wixl" -o out.msi FeatureRefInFragment.wxs
+  [ "$status" -eq 0 ]
+  test -f out.msi
+}
+
+@test "wixl - FeatureRef in Product" {
+  cd wixl
+  run "$wixl" -o out.msi FeatureRefInProduct.wxs
+  [ "$status" -eq 0 ]
+  test -f out.msi
+}
+
 @test "wixl - preprocessor variables" {
   cd wixl
   export MY_VAR="Hello!"
@@ -120,6 +134,44 @@ EOF
   cd wixl
   run "$wixl" -o out.msi IncludeTest.wxs
   [ "$output" = "IncludeWarn.wxi:3: warning: IncludeWarn is included" ]
+  cat >IncludeQuoted.wxs <<EOF
+<?xml version="1.0"?>
+<Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
+  <?include "IncludeWarn.wxi"?>
+</Wix>
+EOF
+  run "$wixl" -E IncludeQuoted.wxs
+  [ "$output" = "IncludeWarn.wxi:3: warning: IncludeWarn is included" ]
+  cat >cpack_variables.wxi <<EOF
+<?define CPACK_WIX_PRODUCT_GUID = "DFAEA67D-C3B7-4AFC-4BAF-A566-629427F48990"?>
+<?define CPACK_PACKAGE_NAME = "msi_test"?>
+EOF
+  cat >IncludeDefinesOnly.wxs <<EOF
+<?xml version="1.0"?>
+<?include "cpack_variables.wxi"?>
+<Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
+  <Property Id="P1" Value="\$(var.CPACK_WIX_PRODUCT_GUID)"/>
+  <Property Id="P2" Value="\$(var.CPACK_PACKAGE_NAME)"/>
+</Wix>
+EOF
+  run "$wixl" -E IncludeDefinesOnly.wxs
+  [ "$status" -eq 0 ]
+  echo "$output" | grep -F 'Property Id="P1" Value="DFAEA67D-C3B7-4AFC-4BAF-A566-629427F48990"'
+  echo "$output" | grep -F 'Property Id="P2" Value="msi_test"'
+  cat >IfndefBareVariable.wxs <<EOF
+<?xml version="1.0"?>
+<?ifndef CPACK_WIX_CAB_PER_COMPONENT?>
+<?define BRANCH = "NONE"?>
+<?else?>
+<?define BRANCH = "SET"?>
+<?endif?>
+<Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
+  <Property Id="BRANCH" Value="\$(var.BRANCH)"/>
+</Wix>
+EOF
+  run "$wixl" -E IfndefBareVariable.wxs
+  [ "$status" -eq 0 ]
+  echo "$output" | grep -F 'Property Id="BRANCH" Value="NONE"'
   run "$wixl" -D Bar -o out.msi IncludeTest.wxs
   [ "$output" = "IncludeTest.wxs:11: warning: Bar" ]
   run "$wixl" -D Foo -o out.msi IncludeTest.wxs

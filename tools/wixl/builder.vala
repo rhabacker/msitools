@@ -728,6 +728,9 @@ namespace Wixl {
 
             if (ref.parent is WixFeature) {
                 feature_add_component (@ref.parent as WixFeature, component);
+            } else if (ref.parent is WixFeatureRef) {
+                var feature = resolve<WixFeature> (@ref.parent);
+                feature_add_component (feature, component);
             } else if (ref.parent is WixComponentGroup) {
                 // will be added in GroupRef
             } else
@@ -739,6 +742,9 @@ namespace Wixl {
 
             if (ref.parent is WixFeature) {
                 var feature = ref.parent as WixFeature;
+                feature_add_component_group (feature, group);
+            } else if (ref.parent is WixFeatureRef) {
+                var feature = resolve<WixFeature> (@ref.parent);
                 feature_add_component_group (feature, group);
             } else if (ref.parent is WixComponentGroup) {
                 // is added by parent group
