@@ -124,7 +124,7 @@ namespace Wixl {
         }
 
         public void load_extension_file(Extension ext, string name) throws GLib.Error {
-            if (ext in extensions) {
+            if (ext in extensions || ext == Extension.UI) {
                 load_file(File.new_build_filename (extdir, ext.get_dir(), name + ".wxs"));
             } else {
                 throw new Wixl.Error.FAILED ("Can't load '%s': extension '%s' isn't enabled", name, ext.to_string());
@@ -728,6 +728,9 @@ namespace Wixl {
 
             if (ref.parent is WixFeature) {
                 feature_add_component (@ref.parent as WixFeature, component);
+            } else if (ref.parent is WixFeatureRef) {
+                var feature = resolve<WixFeature> (@ref.parent);
+                feature_add_component (feature, component);
             } else if (ref.parent is WixComponentGroup) {
                 // will be added in GroupRef
             } else
@@ -739,6 +742,9 @@ namespace Wixl {
 
             if (ref.parent is WixFeature) {
                 var feature = ref.parent as WixFeature;
+                feature_add_component_group (feature, group);
+            } else if (ref.parent is WixFeatureRef) {
+                var feature = resolve<WixFeature> (@ref.parent);
                 feature_add_component_group (feature, group);
             } else if (ref.parent is WixComponentGroup) {
                 // is added by parent group
