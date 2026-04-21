@@ -208,7 +208,7 @@ namespace Wixl {
             }
         }
 
-        public virtual void load (Xml.Node *node) throws Wixl.Error {
+        public virtual void load (Xml.Node *node, string source = "<unknown>") throws Wixl.Error {
             if (name != null && node->name != name)
                 throw new Error.FAILED ("%s: invalid node %s".printf (name, node->name));
 
@@ -224,7 +224,7 @@ namespace Wixl {
                     var t = child_types->lookup (child->name);
                     if (t != 0) {
                         var elem = Object.new (t) as WixElement;
-                        elem.load (child);
+                        elem.load (child, source);
                         add_child (elem);
                         continue;
                     }
@@ -232,7 +232,6 @@ namespace Wixl {
                 default:
                     break;
                 }
-                var source = (node->doc != null && node->doc->URL != null) ? (string)node->doc->URL : "<unknown>";
                 error ("%s:%d: unhandled child %s node %s", source, (int)child->line, name, child->name);
             }
         }
@@ -789,8 +788,8 @@ namespace Wixl {
         // not in the specification, but used by layouts?
         public string Condition { get; set; }
 
-        public override void load (Xml.Node *node) throws Wixl.Error {
-            base.load (node);
+        public override void load (Xml.Node *node, string source = "<unknown>") throws Wixl.Error {
+            base.load (node, source);
             name = node->name;
         }
 

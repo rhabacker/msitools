@@ -107,14 +107,14 @@ namespace Wixl {
         }
 
         List<WixRoot> roots;
-        public void load_doc (Xml.Doc doc) throws GLib.Error {
+        public void load_doc (Xml.Doc doc, string source = "<unknown>") throws GLib.Error {
             for (var child = doc.children; child != null; child = child->next) {
                 switch (child->type) {
                 case Xml.ElementType.ELEMENT_NODE:
                     if (child->name != "Wix")
                         warning ("unhandled node %s", child->name);
                     var root = new WixRoot ();
-                    root.load (child);
+                    root.load (child, source);
                     roots.append (root);
                     break;
                 default:
@@ -142,7 +142,7 @@ namespace Wixl {
                 return;
             }
 
-            load_doc (doc);
+            load_doc (doc, file.get_path ());
         }
 
         public G? find_element<G> (string Id) {
