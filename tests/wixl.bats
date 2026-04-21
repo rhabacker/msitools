@@ -267,3 +267,27 @@ EOF
   # FIXME: add tons of tests on out.msi
   test -f out.msi
 }
+
+@test "wixl - UIRef works without explicitly enabling ui extension" {
+  cd wixl
+  run "$wixl" -o out.msi TestUI.wxs --extdir "$SRCDIR/data/ext"
+  [ "$status" -eq 0 ]
+  test -f out.msi
+}
+
+@test "wixl - XML handling reports source location" {
+  cd wixl
+  cat >bad-location.wxs <<EOF
+<?xml version="1.0"?>
+<Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
+  <Product Id='*' Name='Bad' Language='1033' Version='1.0.0' Manufacturer='Bad'
+           UpgradeCode='12345678-1234-1234-1234-123456789012'>
+    <Package InstallerVersion='200' Compressed='yes' />
+    <Bogus />
+  </Product>
+</Wix>
+EOF
+  run "$wixl" bad-location.wxs
+  [ "$status" -eq 1 ]
+  echo "$output" | grep -q "bad-location.wxs:"
+}

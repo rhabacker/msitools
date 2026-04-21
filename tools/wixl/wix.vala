@@ -232,7 +232,8 @@ namespace Wixl {
                 default:
                     break;
                 }
-                error ("unhandled child %s node %s", name, child->name);
+                var source = (node->doc != null && node->doc->URL != null) ? (string)node->doc->URL : "<unknown>";
+                error ("%s:%d: unhandled child %s node %s", source, (int)child->line, name, child->name);
             }
         }
 

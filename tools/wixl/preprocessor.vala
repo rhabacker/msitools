@@ -519,7 +519,7 @@ namespace Wixl {
             }
 
             try {
-                var reader = new Xml.TextReader.for_doc (data, "");
+                var reader = new Xml.TextReader.for_doc (data, filename);
                 preprocess_xml (reader, writer, file, true);
             } catch (GLib.Error error) {
                 // Some generators (for example CPack) produce .wxi files that
@@ -527,7 +527,7 @@ namespace Wixl {
                 // Those are not standalone XML documents, so parse them by
                 // wrapping in an Include root element.
                 var wrapped = "<Include>\n" + data + "\n</Include>";
-                var reader = new Xml.TextReader.for_doc (wrapped, "");
+                var reader = new Xml.TextReader.for_doc (wrapped, filename);
                 preprocess_xml (reader, writer, file, true);
             }
             return true;
@@ -564,7 +564,7 @@ namespace Wixl {
         public Xml.Doc preprocess (string data, File? file) throws GLib.Error {
             Xml.Doc doc;
             Xml.TextWriter writer = new Xml.TextWriter.doc (out doc);
-            var reader = new Xml.TextReader.for_doc (data, "");
+            var reader = new Xml.TextReader.for_doc (data, file != null ? file.get_path () : "");
 
             writer.start_document ();
             preprocess_xml (reader, writer, file);

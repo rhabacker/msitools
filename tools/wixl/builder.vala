@@ -124,7 +124,7 @@ namespace Wixl {
         }
 
         public void load_extension_file(Extension ext, string name) throws GLib.Error {
-            if (ext in extensions) {
+            if (ext in extensions || ext == Extension.UI) {
                 load_file(File.new_build_filename (extdir, ext.get_dir(), name + ".wxs"));
             } else {
                 throw new Wixl.Error.FAILED ("Can't load '%s': extension '%s' isn't enabled", name, ext.to_string());
