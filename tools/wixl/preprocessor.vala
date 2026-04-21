@@ -437,6 +437,9 @@ namespace Wixl {
                 switch (reader.node_type ()) {
                 case Xml.ReaderType.PROCESSING_INSTRUCTION:
                     switch (reader.const_local_name ()) {
+                    case "xml":
+                        // XML declaration from included content.
+                        break;
                     case "define":
                         MatchInfo info;
                         var r = /^\s*(?P<name>.+?)\s*=\s*(?P<value>.+?)\s*$/;

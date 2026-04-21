@@ -236,7 +236,8 @@ namespace Wixl {
                 default:
                     break;
                 }
-                error ("%s:%d: unhandled child %s node %s", source, (int)child->line, name, child->name);
+                throw new Wixl.Error.FAILED ("%s:%d: unhandled child %s node %s",
+                                             source, (int)child->line, name, child->name);
             }
         }
 

@@ -77,6 +77,8 @@ namespace Wixl {
                     foreach (var file in ext.get_files ()) {
                         load_extension_file(ext, file);
                     }
+                    if (ext == Extension.UI)
+                        ui_bootstrapped = true;
                 } catch (GLib.Error error) {
                     printerr (error.message + "\n");
                     Posix.exit (1);
@@ -91,6 +93,7 @@ namespace Wixl {
         string extdir;
         Extension[] extensions;
         Arch arch;
+        bool ui_bootstrapped = false;
 
         construct {
             variables = new HashTable<string, string> (str_hash, str_equal);
@@ -129,6 +132,17 @@ namespace Wixl {
             } else {
                 throw new Wixl.Error.FAILED ("Can't load '%s': extension '%s' isn't enabled", name, ext.to_string());
             }
+        }
+
+        void ensure_ui_bootstrap () throws GLib.Error {
+            if (ui_bootstrapped)
+                return;
+
+            foreach (var file in Extension.UI.get_files ()) {
+                load_extension_file (Extension.UI, file);
+            }
+
+            ui_bootstrapped = true;
         }
 
         public void load_file (File file, bool preproc_only = false) throws GLib.Error {
@@ -1490,12 +1504,16 @@ namespace Wixl {
 
         public override void visit_ui_ref (WixUIRef ref) throws GLib.Error {
             if (find_element<WixUI>(@ref.Id) == null) {
+                ensure_ui_bootstrap ();
                 try {
                     load_extension_file (Extension.UI, @ref.Id);
                 } catch (GLib.Error error) {
                     if (@ref.Id == "WixUI_InstallDir") {
                         // We only ship the minimal built-in UI set.
                         load_extension_file (Extension.UI, "WixUI_Minimal");
+                    } else if (@ref.Id == "WixUI_ErrorProgressText") {
+                        // Not shipped in our built-in UI set.
+                        warning ("%s:%d: %s", @ref.SourceFile, @ref.SourceLine, error.message);
                     } else {
                         throw new Wixl.Error.FAILED ("%s:%d: %s", @ref.SourceFile, @ref.SourceLine, error.message);
                     }
