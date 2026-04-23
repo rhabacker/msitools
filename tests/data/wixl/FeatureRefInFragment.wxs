@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='windows-1252'?>
+<Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
+  <Product Id='*' Name='FeatureRefInFragment' Language='1033' Version='1.0.0' Manufacturer='wixl'
+           UpgradeCode='7f1d4b28-24c3-4f94-8939-f8d40e09b247'>
+    <Package InstallerVersion='200' Compressed='yes' />
+    <Media Id='1' Cabinet='product.cab' EmbedCab='yes' />
+    <Directory Id='TARGETDIR' Name='SourceDir'>
+      <Directory Id='ProgramFilesFolder'>
+        <Directory Id='INSTALL_ROOT' Name='FeatureRefInFragment'>
+          <Component Id='CM_CP_hello.txt' Guid='6a32e390-13fc-4df3-ac91-fbd8bf4862cb'>
+            <File Id='FI_CP_hello.txt' Source='FoobarAppl10.exe' KeyPath='yes' />
+          </Component>
+        </Directory>
+      </Directory>
+    </Directory>
+  </Product>
+
+  <Fragment>
+    <Feature Id='ProductFeature' Display='expand' Absent='disallow'
+             ConfigurableDirectory='INSTALL_ROOT' Title='FeatureRefInFragment' Level='1' />
+    <FeatureRef Id='ProductFeature'>
+      <ComponentRef Id='CM_CP_hello.txt' />
+    </FeatureRef>
+  </Fragment>
+</Wix>
