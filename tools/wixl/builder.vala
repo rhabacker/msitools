@@ -69,7 +69,7 @@ namespace Wixl {
             this.extdir = extdir;
 
             if (extensions.length > 0) {
-                add_path (File.new_for_path (extdir).get_path ());
+                ensure_extdir_path ();
             }
 
             foreach (var ext in this.extensions) {
@@ -89,14 +89,17 @@ namespace Wixl {
         WixRoot root;
         MsiDatabase db;
         HashTable<string, string> variables;
+        HashTable<string,string*> resolved_ui_refs;
         List<File> includedirs;
         string extdir;
         Extension[] extensions;
         Arch arch;
         bool ui_bootstrapped = false;
+        bool extdir_added = false;
 
         construct {
             variables = new HashTable<string, string> (str_hash, str_equal);
+            resolved_ui_refs = new HashTable<string, string*> (str_hash, str_equal);
         }
 
         public void define_variable (string name, string value) {
@@ -134,7 +137,17 @@ namespace Wixl {
             }
         }
 
+        void ensure_extdir_path () {
+            if (extdir_added)
+                return;
+
+            add_path (File.new_for_path (extdir).get_path ());
+            extdir_added = true;
+        }
+
         void ensure_ui_bootstrap () throws GLib.Error {
+            ensure_extdir_path ();
+
             if (ui_bootstrapped)
                 return;
 
@@ -395,7 +408,11 @@ namespace Wixl {
         }
 
         public MsiDatabase build () throws GLib.Error {
-            db = new MsiDatabase (arch, extensions);
+            var db_extensions = extensions;
+            if (needs_ui_tables () && !(Extension.UI in db_extensions))
+                db_extensions += Extension.UI;
+
+            db = new MsiDatabase (arch, db_extensions);
 
             foreach (var r in roots) {
                 root = r;
@@ -411,6 +428,13 @@ namespace Wixl {
             build_cabinet ();
 
             return db;
+        }
+
+        bool needs_ui_tables () {
+            return get_elements<WixUIRef> ().length > 0 ||
+                   get_elements<WixUI> ().length > 0 ||
+                   get_elements<WixDialog> ().length > 0 ||
+                   get_elements<WixControl> ().length > 0;
         }
 
         public override void visit_product (WixProduct product) throws GLib.Error {
@@ -1503,14 +1527,26 @@ namespace Wixl {
         }
 
         public override void visit_ui_ref (WixUIRef ref) throws GLib.Error {
+            if (resolved_ui_refs.lookup_extended (@ref.Id, null, null))
+                return;
+
             if (find_element<WixUI>(@ref.Id) == null) {
                 ensure_ui_bootstrap ();
                 try {
                     load_extension_file (Extension.UI, @ref.Id);
+                    hash_table_add (resolved_ui_refs, @ref.Id);
                 } catch (GLib.Error error) {
                     if (@ref.Id == "WixUI_InstallDir") {
                         // We only ship the minimal built-in UI set.
+                        if (resolved_ui_refs.lookup_extended ("WixUI_Minimal", null, null) ||
+                            find_element<WixUI> ("WixUI_Minimal") != null) {
+                            hash_table_add (resolved_ui_refs, @ref.Id);
+                            return;
+                        }
+
                         load_extension_file (Extension.UI, "WixUI_Minimal");
+                        hash_table_add (resolved_ui_refs, "WixUI_Minimal");
+                        hash_table_add (resolved_ui_refs, @ref.Id);
                     } else if (@ref.Id == "WixUI_ErrorProgressText") {
                         // Not shipped in our built-in UI set.
                         warning ("%s:%d: %s", @ref.SourceFile, @ref.SourceLine, error.message);
@@ -1518,6 +1554,8 @@ namespace Wixl {
                         throw new Wixl.Error.FAILED ("%s:%d: %s", @ref.SourceFile, @ref.SourceLine, error.message);
                     }
                 }
+            } else {
+                hash_table_add (resolved_ui_refs, @ref.Id);
             }
         }
 

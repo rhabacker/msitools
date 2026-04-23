@@ -320,14 +320,15 @@ namespace Wixl {
             return evaluator.eval (str);
         }
 
-        bool is_variable_defined (string expr) {
+        bool is_variable_defined (string expr, File? file) throws GLib.Error {
             var variable = unquote (expr.strip ());
 
             if (variable.has_prefix ("$(") && variable.has_suffix (")"))
                 variable = variable[2:-1];
-            variable = remove_prefix ("var.", variable);
+            if (variable.index_of_char ('.') == -1)
+                variable = "var." + variable;
 
-            return lookup_variable (variable) != null;
+            return eval_variable (variable, file) != null;
         }
 
         class Location: Object {
@@ -400,12 +401,12 @@ namespace Wixl {
                     case "ifdef":
                         ifstack.push_head (context);
                         var value = reader.const_value ().strip ();
-                        context = new IfContext (context.enabled && context.is_true, is_variable_defined (value), IfContext.State.IF);
+                        context = new IfContext (context.enabled && context.is_true, is_variable_defined (value, file), IfContext.State.IF);
                         break;
                     case "ifndef":
                         ifstack.push_head (context);
                         var value = reader.const_value ().strip ();
-                        context = new IfContext (context.enabled && context.is_true, !is_variable_defined (value), IfContext.State.IF);
+                        context = new IfContext (context.enabled && context.is_true, !is_variable_defined (value, file), IfContext.State.IF);
                         break;
                     case "else":
                         if (ifstack.is_empty ())
@@ -521,18 +522,19 @@ namespace Wixl {
                 return false;
             }
 
+            Xml.TextReader reader;
             try {
-                var reader = new Xml.TextReader.for_doc (data, filename);
-                preprocess_xml (reader, writer, file, true);
+                reader = new Xml.TextReader.for_doc (data, filename);
             } catch (GLib.Error error) {
                 // Some generators (for example CPack) produce .wxi files that
                 // only contain processing instructions such as <?define ...?>.
                 // Those are not standalone XML documents, so parse them by
                 // wrapping in an Include root element.
                 var wrapped = "<Include>\n" + data + "\n</Include>";
-                var reader = new Xml.TextReader.for_doc (wrapped, filename);
-                preprocess_xml (reader, writer, file, true);
+                reader = new Xml.TextReader.for_doc (wrapped, filename);
             }
+
+            preprocess_xml (reader, writer, file, true);
             return true;
         }
 

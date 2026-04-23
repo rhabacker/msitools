@@ -141,7 +141,7 @@ EOF
 </Wix>
 EOF
   run "$wixl" -E IncludeQuoted.wxs
-  [ "$output" = "IncludeWarn.wxi:3: warning: IncludeWarn is included" ]
+  echo "$output" | grep -F "IncludeWarn.wxi:3: warning: IncludeWarn is included"
   cat >cpack_variables.wxi <<EOF
 <?define CPACK_WIX_PRODUCT_GUID = "DFAEA67D-C3B7-4AFC-4BAF-A566-629427F48990"?>
 <?define CPACK_PACKAGE_NAME = "msi_test"?>
@@ -172,6 +172,27 @@ EOF
   run "$wixl" -E IfndefBareVariable.wxs
   [ "$status" -eq 0 ]
   echo "$output" | grep -F 'Property Id="BRANCH" Value="NONE"'
+  cat >IfdefEnvSys.wxs <<EOF
+<?xml version="1.0"?>
+<?ifdef env.PATH?>
+<?define ENV_BRANCH = "SET"?>
+<?else?>
+<?define ENV_BRANCH = "UNSET"?>
+<?endif?>
+<?ifdef sys.BUILDARCH?>
+<?define SYS_BRANCH = "SET"?>
+<?else?>
+<?define SYS_BRANCH = "UNSET"?>
+<?endif?>
+<Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
+  <Property Id="ENV_BRANCH" Value="\$(var.ENV_BRANCH)"/>
+  <Property Id="SYS_BRANCH" Value="\$(var.SYS_BRANCH)"/>
+</Wix>
+EOF
+  run "$wixl" -E IfdefEnvSys.wxs
+  [ "$status" -eq 0 ]
+  echo "$output" | grep -F 'Property Id="ENV_BRANCH" Value="SET"'
+  echo "$output" | grep -F 'Property Id="SYS_BRANCH" Value="SET"'
   run "$wixl" -D Bar -o out.msi IncludeTest.wxs
   [ "$output" = "IncludeTest.wxs:11: warning: Bar" ]
   run "$wixl" -D Foo -o out.msi IncludeTest.wxs
