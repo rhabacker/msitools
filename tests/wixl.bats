@@ -172,6 +172,27 @@ EOF
   run "$wixl" -E IfndefBareVariable.wxs
   [ "$status" -eq 0 ]
   echo "$output" | grep -F 'Property Id="BRANCH" Value="NONE"'
+  cat >IfdefEnvSys.wxs <<EOF
+<?xml version="1.0"?>
+<?ifdef env.PATH?>
+<?define ENV_BRANCH = "SET"?>
+<?else?>
+<?define ENV_BRANCH = "UNSET"?>
+<?endif?>
+<?ifdef sys.BUILDARCH?>
+<?define SYS_BRANCH = "SET"?>
+<?else?>
+<?define SYS_BRANCH = "UNSET"?>
+<?endif?>
+<Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
+  <Property Id="ENV_BRANCH" Value="\$(var.ENV_BRANCH)"/>
+  <Property Id="SYS_BRANCH" Value="\$(var.SYS_BRANCH)"/>
+</Wix>
+EOF
+  run "$wixl" -E IfdefEnvSys.wxs
+  [ "$status" -eq 0 ]
+  echo "$output" | grep -F 'Property Id="ENV_BRANCH" Value="SET"'
+  echo "$output" | grep -F 'Property Id="SYS_BRANCH" Value="SET"'
   run "$wixl" -D Bar -o out.msi IncludeTest.wxs
   [ "$output" = "IncludeTest.wxs:11: warning: Bar" ]
   run "$wixl" -D Foo -o out.msi IncludeTest.wxs

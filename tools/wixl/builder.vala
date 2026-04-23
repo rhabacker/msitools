@@ -68,9 +68,7 @@ namespace Wixl {
             this.extensions = extensions;
             this.extdir = extdir;
 
-            if (extensions.length > 0) {
-                add_path (File.new_for_path (extdir).get_path ());
-            }
+            ensure_extdir_path ();
 
             foreach (var ext in this.extensions) {
                 try {
@@ -94,6 +92,7 @@ namespace Wixl {
         Extension[] extensions;
         Arch arch;
         bool ui_bootstrapped = false;
+        bool extdir_added = false;
 
         construct {
             variables = new HashTable<string, string> (str_hash, str_equal);
@@ -134,7 +133,17 @@ namespace Wixl {
             }
         }
 
+        void ensure_extdir_path () {
+            if (extdir_added)
+                return;
+
+            add_path (File.new_for_path (extdir).get_path ());
+            extdir_added = true;
+        }
+
         void ensure_ui_bootstrap () throws GLib.Error {
+            ensure_extdir_path ();
+
             if (ui_bootstrapped)
                 return;
 
