@@ -522,18 +522,19 @@ namespace Wixl {
                 return false;
             }
 
+            Xml.TextReader reader;
             try {
-                var reader = new Xml.TextReader.for_doc (data, filename);
-                preprocess_xml (reader, writer, file, true);
+                reader = new Xml.TextReader.for_doc (data, filename);
             } catch (GLib.Error error) {
                 // Some generators (for example CPack) produce .wxi files that
                 // only contain processing instructions such as <?define ...?>.
                 // Those are not standalone XML documents, so parse them by
                 // wrapping in an Include root element.
                 var wrapped = "<Include>\n" + data + "\n</Include>";
-                var reader = new Xml.TextReader.for_doc (wrapped, filename);
-                preprocess_xml (reader, writer, file, true);
+                reader = new Xml.TextReader.for_doc (wrapped, filename);
             }
+
+            preprocess_xml (reader, writer, file, true);
             return true;
         }
 

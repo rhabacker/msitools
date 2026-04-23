@@ -89,6 +89,7 @@ namespace Wixl {
         WixRoot root;
         MsiDatabase db;
         HashTable<string, string> variables;
+        HashTable<string,string*> resolved_ui_refs;
         List<File> includedirs;
         string extdir;
         Extension[] extensions;
@@ -98,6 +99,7 @@ namespace Wixl {
 
         construct {
             variables = new HashTable<string, string> (str_hash, str_equal);
+            resolved_ui_refs = new HashTable<string, string*> (str_hash, str_equal);
         }
 
         public void define_variable (string name, string value) {
@@ -1525,14 +1527,26 @@ namespace Wixl {
         }
 
         public override void visit_ui_ref (WixUIRef ref) throws GLib.Error {
+            if (resolved_ui_refs.lookup_extended (@ref.Id, null, null))
+                return;
+
             if (find_element<WixUI>(@ref.Id) == null) {
                 ensure_ui_bootstrap ();
                 try {
                     load_extension_file (Extension.UI, @ref.Id);
+                    hash_table_add (resolved_ui_refs, @ref.Id);
                 } catch (GLib.Error error) {
                     if (@ref.Id == "WixUI_InstallDir") {
                         // We only ship the minimal built-in UI set.
+                        if (resolved_ui_refs.lookup_extended ("WixUI_Minimal", null, null) ||
+                            find_element<WixUI> ("WixUI_Minimal") != null) {
+                            hash_table_add (resolved_ui_refs, @ref.Id);
+                            return;
+                        }
+
                         load_extension_file (Extension.UI, "WixUI_Minimal");
+                        hash_table_add (resolved_ui_refs, "WixUI_Minimal");
+                        hash_table_add (resolved_ui_refs, @ref.Id);
                     } else if (@ref.Id == "WixUI_ErrorProgressText") {
                         // Not shipped in our built-in UI set.
                         warning ("%s:%d: %s", @ref.SourceFile, @ref.SourceLine, error.message);
@@ -1540,6 +1554,8 @@ namespace Wixl {
                         throw new Wixl.Error.FAILED ("%s:%d: %s", @ref.SourceFile, @ref.SourceLine, error.message);
                     }
                 }
+            } else {
+                hash_table_add (resolved_ui_refs, @ref.Id);
             }
         }
 
