@@ -133,7 +133,7 @@ EOF
 @test "wixl - preprocessor include & condition" {
   cd wixl
   run "$wixl" -o out.msi IncludeTest.wxs
-  echo "$output" | grep -F "IncludeWarn.wxi:3: warning: IncludeWarn is included"
+  [ "$output" = "IncludeWarn.wxi:3: warning: IncludeWarn is included" ]
   cat >IncludeQuoted.wxs <<EOF
 <?xml version="1.0"?>
 <Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
