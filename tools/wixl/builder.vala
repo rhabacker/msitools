@@ -68,9 +68,13 @@ namespace Wixl {
             this.extensions = extensions;
             this.extdir = extdir;
 
+<<<<<<< codex/fix-wixl-to-handle-feature-node-74jw6e
+            ensure_extdir_path ();
+=======
             if (extensions.length > 0) {
                 ensure_extdir_path ();
             }
+>>>>>>> feature-child-fragment
 
             foreach (var ext in this.extensions) {
                 try {
