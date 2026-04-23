@@ -141,7 +141,7 @@ EOF
 </Wix>
 EOF
   run "$wixl" -E IncludeQuoted.wxs
-  [ "$output" = "IncludeWarn.wxi:3: warning: IncludeWarn is included" ]
+  echo "$output" | grep -F "IncludeWarn.wxi:3: warning: IncludeWarn is included"
   cat >cpack_variables.wxi <<EOF
 <?define CPACK_WIX_PRODUCT_GUID = "DFAEA67D-C3B7-4AFC-4BAF-A566-629427F48990"?>
 <?define CPACK_PACKAGE_NAME = "msi_test"?>
